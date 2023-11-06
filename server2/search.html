@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Dictionary Entry</title>
+</head>
+<body>
+    <h1>Search Dictionary Entry</h1>
+    <form id="search-entry-form">
+        <label for="search-word">Search Word:</label>
+        <input type="text" id="search-word" name="search-word" required>
+        <button type="submit">Search Entry</button>
+    </form>
+
+    <div id="search-response"></div>
+
+    <script>
+        const searchEntryForm = document.getElementById("search-entry-form");
+        const searchResponseDiv = document.getElementById("search-response");
+
+        searchEntryForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const searchWord = document.getElementById("search-word").value;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", `http://localhost:3000/api/v1/definition/${searchWord}`, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    searchResponseDiv.textContent = xhr.responseText;
+                }
+            };
+            xhr.send();
+        });
+    </script>
+</body>
+</html>

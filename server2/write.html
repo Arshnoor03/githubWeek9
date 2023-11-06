@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Create Dictionary Entry</title>
+  </head>
+  <body>
+    <h1>Create Dictionary Entry</h1>
+    <form id="create-entry-form">
+      <label for="word">Word:</label>
+      <input type="text" id="word" name="word" required pattern="[A-Za-z ]+"/ />
+
+      <label for="definition">Definition:</label>
+      <textarea id="definition" name="definition" required pattern="[A-Za-z ]+"/></textarea>
+
+      <label for="word-language">Word Language:</label>
+      <select id="word-language" name="word-language" required>
+      </select> 
+
+      <label for="definition-language">Definition Language:</label>
+      <select id="definition-language" name="definition-language" required>
+      </select>
+
+      <button type="submit">Add word</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+      const createEntryForm = document.getElementById("create-entry-form");
+      const responseDiv = document.getElementById("response");
+
+      function populateLanguagesDropdowns() {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "http://localhost:3000/api/v1/languages", true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            const languages = response.languages;
+            
+
+            const wordLanguageSelect = document.getElementById("word-language");
+            const definitionLanguageSelect = document.getElementById(
+              "definition-language"
+            );
+
+            languages.forEach((language) => {
+              const option = document.createElement("option");
+              option.value = language;
+              option.textContent = language;
+              wordLanguageSelect.appendChild(option);
+              definitionLanguageSelect.appendChild(option.cloneNode(true));
+            });
+          }
+        };
+        xhr.send();
+      }
+
+      createEntryForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const word = document.getElementById("word").value;
+        const definition = document.getElementById("definition").value;
+        const wordLanguage = document.getElementById("word-language").value;
+        const definitionLanguage = document.getElementById(
+          "definition-language"
+        ).value;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", `http://localhost:3000/api/v1/definition/${word}`, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              if (confirm(`The word "${word}" already exists. Do you want to update its definition?`)) {
+                const entryData = {
+                  definition,
+                };
+                const updateXhr = new XMLHttpRequest();
+                updateXhr.open("PATCH", `http://localhost:3000/api/v1/definition/${word}`, true);
+                updateXhr.setRequestHeader("Content-Type", "application/json");
+                updateXhr.onreadystatechange = function () {
+                  if (updateXhr.readyState === 4) {
+                    if (updateXhr.status === 200) {
+                      responseDiv.textContent = "Definition updated successfully, thank you!";
+                      populateLanguagesDropdowns();
+                    } else {
+                      const response = JSON.parse(updateXhr.responseText);
+                      responseDiv.textContent = `Error: ${response.message}`;
+                    }
+                  }
+                };
+                updateXhr.send(JSON.stringify(entryData));
+              }
+            } else if (xhr.status === 404) {
+              const entryData = {
+                word,
+                definition,
+                "word-language": wordLanguage,
+                "definition-language": definitionLanguage,
+              };
+              const createXhr = new XMLHttpRequest();
+              createXhr.open("POST", "http://localhost:3000/api/v1/definition", true);
+              createXhr.setRequestHeader("Content-Type", "application/json");
+              createXhr.onreadystatechange = function () {
+                if (createXhr.readyState === 4) {
+                  if (createXhr.status === 201) {
+                    responseDiv.textContent = "Entry created successfully, thank you!";
+                    populateLanguagesDropdowns();
+                  } else {
+                    const response = JSON.parse(createXhr.responseText);
+                    responseDiv.textContent = `Error: ${response.message}`;
+                  }
+                }
+              };
+              createXhr.send(JSON.stringify(entryData));
+            }
+          }
+        };
+        xhr.send();
+      });
+
+      populateLanguagesDropdowns();
+
+      const wordInput = document.getElementById("word");
+      const definitionInput = document.getElementById("definition");
+
+      function validateAlphabets(inputElement) {
+        inputElement.addEventListener("input", function (event) {
+          const inputValue = event.target.value;
+          const sanitizedValue = inputValue.replace(/[^A-Za-z ]/g, "");
+          event.target.value = sanitizedValue;
+        });
+      }
+    </script>
+  </body>
+</html>
